@@ -4,6 +4,15 @@ This project packages a tested way to run [Grim Dawn Item Assistant](https://gri
 
 The key is a small, Grim-Dawn-only Steam compatibility tool. When you launch the official **Grim Dawn** library entry, it starts Item Assistant first, waits for its injection loop to initialize, and then launches the real game in the same Proton container. No separate Gaming Mode shortcut is needed.
 
+## Optional Decky companion plugin
+
+After completing this setup, you can add the
+[Grim Dawn Item Assistant for Decky](https://github.com/lbr88/decky-grim-dawn-item-assistant)
+companion plugin. It provides a controller-friendly Quick Access interface for
+searching Item Assistant storage and sending selected items back to Grim Dawn
+without switching to the full Item Assistant window. Install this base setup
+first, then follow the Decky repository's installer instructions.
+
 ## What works
 
 - Item Assistant starts before Grim Dawn.
