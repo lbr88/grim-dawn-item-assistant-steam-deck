@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Install Grim Dawn Item Assistant
+Comment=Guided Steam Deck installer for Grim Dawn Item Assistant
+Exec=sh -c "rm -f /tmp/gdia-bootstrap-installer.sh; if curl -fL --connect-timeout 60 https://raw.githubusercontent.com/lbr88/grim-dawn-item-assistant-steam-deck/main/scripts/bootstrap-installer.sh -o /tmp/gdia-bootstrap-installer.sh; then bash /tmp/gdia-bootstrap-installer.sh || read -r response; else echo Could-not-download-the-Grim-Dawn-Item-Assistant-installer; read -r response; fi; rm -f /tmp/gdia-bootstrap-installer.sh"
+Icon=steamdeck-gaming-return
+Terminal=true
+Type=Application
+Categories=Game;
+StartupNotify=false

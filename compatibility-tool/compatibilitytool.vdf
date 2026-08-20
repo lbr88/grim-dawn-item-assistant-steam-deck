@@ -1,0 +1,13 @@
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "GDIA-Proton-10"
+    {
+      "install_path" "."
+      "display_name" "GD Item Assistant - Proton 10"
+      "from_oslist" "windows"
+      "to_oslist" "linux"
+    }
+  }
+}

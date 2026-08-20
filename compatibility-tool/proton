@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -u
+
+tool_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+real_proton="$tool_dir/upstream-proton"
+
+# Steam supplies these paths to compatibility tools. The fallbacks match a
+# standard Steam Deck installation and keep direct diagnostics understandable.
+steam_root="${STEAM_COMPAT_CLIENT_INSTALL_PATH:-$HOME/.local/share/Steam}"
+compat_data="${STEAM_COMPAT_DATA_PATH:-$steam_root/steamapps/compatdata/219990}"
+prefix="$compat_data/pfx"
+ia_dir="$prefix/drive_c/Program Files/IAGD"
+webview_root="$prefix/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/gdia-steam-deck"
+log_file="$state_dir/launch.log"
+start_delay="${GDIA_START_DELAY_SECONDS:-15}"
+
+log() {
+  printf '%s %s\n' "$(date --iso-8601=seconds)" "$*" >>"$log_file"
+}
+
+latest_webview_version() {
+  local candidate
+
+  shopt -s nullglob
+  for candidate in "$webview_root"/*; do
+    [[ -f "$candidate/msedgewebview2.exe" ]] || continue
+    printf '%s\n' "${candidate##*/}"
+  done | sort -V | tail -n 1
+
+}
+
+stop_item_assistant() {
+  local runner_pid="$1"
+  local attempt
+
+  timeout 10 "$real_proton" runinprefix taskkill.exe /IM IAGrim.exe /T /F >>"$log_file" 2>&1 || true
+
+  for attempt in {1..40}; do
+    kill -0 "$runner_pid" 2>/dev/null || break
+    sleep 0.25
+  done
+
+  kill "$runner_pid" 2>/dev/null || true
+  wait "$runner_pid" 2>/dev/null || true
+}
+
+# This is the verb used by Steam's normal Grim Dawn launch. All other Proton
+# operations are forwarded unchanged so validation, setup, and prefix actions
+# continue to behave like the official Proton installation.
+if [[ "${1-}" == "waitforexitandrun" ]]; then
+  shift
+  mkdir -p "$state_dir"
+
+  if [[ ! -x "$real_proton" ]]; then
+    log "ERROR: Missing upstream Proton launcher: $real_proton"
+    exit 1
+  fi
+
+  if [[ ! -f "$ia_dir/IAGrim.exe" ]]; then
+    log "ERROR: Item Assistant is not installed at $ia_dir/IAGrim.exe"
+    exit 1
+  fi
+
+  webview_version="$(latest_webview_version)"
+  if [[ -z "$webview_version" ]]; then
+    log "ERROR: No WebView2 runtime found under $webview_root"
+    exit 1
+  fi
+
+  export WEBVIEW2_BROWSER_EXECUTABLE_FOLDER="C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\$webview_version"
+  log "Starting Item Assistant with WebView2 $webview_version"
+
+  (
+    cd "$ia_dir" || exit 1
+    WINEDEBUG=-all "$real_proton" runinprefix "C:/Program Files/IAGD/IAGrim.exe"
+  ) >>"$log_file" 2>&1 &
+  ia_runner_pid=$!
+
+  sleep "$start_delay"
+  if ! kill -0 "$ia_runner_pid" 2>/dev/null; then
+    log "ERROR: Item Assistant exited before Grim Dawn could start"
+    wait "$ia_runner_pid" 2>/dev/null || true
+    exit 1
+  fi
+
+  log "Starting Grim Dawn after ${start_delay}s delay"
+  game_status=0
+  "$real_proton" run "$@" || game_status=$?
+
+  log "Grim Dawn exited with status $game_status; stopping Item Assistant"
+  stop_item_assistant "$ia_runner_pid"
+  exit "$game_status"
+fi
+
+exec "$real_proton" "$@"

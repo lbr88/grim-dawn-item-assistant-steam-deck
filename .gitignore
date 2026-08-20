@@ -1,0 +1,10 @@
+*.log
+*.bak
+*.backup
+.DS_Store
+
+# Never commit a copied Proton prefix, Item Assistant database, or credentials.
+compatdata/
+userdata.db*
+settings.json
+gdia-installers/
