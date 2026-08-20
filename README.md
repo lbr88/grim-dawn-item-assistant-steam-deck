@@ -19,7 +19,7 @@ The complete workflow was tested end to end on a Steam Deck on 19 August 2026. S
 
 For the usual no-typing Steam Deck experience, download:
 
-**[Install-Grim-Dawn-Item-Assistant.desktop](https://raw.githubusercontent.com/lbr88/grim-dawn-item-assistant-steam-deck/main/Install-Grim-Dawn-Item-Assistant.desktop)**
+**[Install-Grim-Dawn-Item-Assistant.desktop](https://github.com/lbr88/grim-dawn-item-assistant-steam-deck/releases/latest/download/Install-Grim-Dawn-Item-Assistant.desktop)**
 
 In Desktop Mode, move the downloaded file to the Desktop and double-click it. It downloads this repository and opens a guided KDE installer. The wizard can install Protontricks, lets you choose the three official Windows installers, opens Item Assistant for database/cloud configuration, and installs the combined Steam launcher.
 
