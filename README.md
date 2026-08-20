@@ -21,18 +21,20 @@ For the usual no-typing Steam Deck experience, download:
 
 **[Install-Grim-Dawn-Item-Assistant.desktop](https://github.com/lbr88/grim-dawn-item-assistant-steam-deck/releases/latest/download/Install-Grim-Dawn-Item-Assistant.desktop)**
 
-In Desktop Mode, move the downloaded file to the Desktop and double-click it. It downloads this repository and opens a guided KDE installer. The wizard can install Protontricks, lets you choose the three official Windows installers, opens Item Assistant for database/cloud configuration, and installs the combined Steam launcher.
+In Desktop Mode, move the downloaded file to the Desktop and double-click it. It downloads this repository and opens a guided KDE installer. The wizard checks the existing Grim Dawn prefix first, skips everything already installed, downloads any missing official Windows components itself, and installs or updates the combined Steam launcher. There are no Windows-installer file pickers.
+
+If Item Assistant already has a populated Grim Dawn database, the wizard detects it and does not open Item Assistant setup. On a genuinely new installation, the only interactive Windows step is Item Assistant's own first-time database and optional online-sync configuration.
 
 Firefox may append `.download` to the filename. If it does, rename the file so it ends in `.desktop`. If KDE asks whether to execute the file, choose **Execute**; if necessary, open **Properties > Permissions** and enable **Is executable**.
 
-The downloadable launcher follows the same `.desktop` installer pattern used by Steam Deck projects such as Decky. It downloads the installer script before running it and never requests `sudo` or an administrator password.
+The downloadable launcher follows the same `.desktop` installer pattern used by Steam Deck projects such as Decky. It downloads the installer script before running it and never requests `sudo` or an administrator password. Rerunning it is safe: installed components and an unchanged compatibility tool are left alone.
 
 ## Manual setup
 
 Follow [docs/SETUP.md](docs/SETUP.md). The short version is:
 
 1. Run Grim Dawn once with official Proton 10, then close it.
-2. Install Item Assistant and its Windows dependencies into Grim Dawn's Proton prefix.
+2. Run `scripts/ensure-windows-components.sh`; it installs only components missing from Grim Dawn's Proton prefix.
 3. Link the Linux Steam config and Grim Dawn directory where Item Assistant expects Windows Steam.
 4. Open Item Assistant by itself once to parse the game database and configure online sync.
 5. Install the custom compatibility tool, restart Steam, and select **GD Item Assistant - Proton 10** for Grim Dawn.
@@ -63,7 +65,7 @@ These are a record of the tested system, not a promise that they are the only co
 - .NET Desktop Runtime 10.0.11, Windows x64
 - Microsoft Edge WebView2 Runtime 151.0.4129.93
 
-Use Item Assistant's current upstream requirements when they change. The scripts locate the installed WebView2 version dynamically rather than hard-coding the version above.
+The automatic installer pins the tested Item Assistant and .NET builds above, verifies their published checksums, and downloads Microsoft's current x64 WebView2 Evergreen standalone installer. The runtime scripts locate the installed WebView2 version dynamically rather than hard-coding it.
 
 ## Important notes
 

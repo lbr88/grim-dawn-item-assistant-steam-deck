@@ -8,13 +8,18 @@ source "$script_dir/_common.sh"
 usage() {
   cat >&2 <<'USAGE'
 Usage:
+  install-windows-components.sh
   install-windows-components.sh ITEM_ASSISTANT_EXE DOTNET_DESKTOP_RUNTIME_EXE WEBVIEW2_RUNTIME_EXE
 
-All three arguments must be installers you downloaded from their official sites.
-They are copied into Grim Dawn's compatdata directory before Protontricks runs.
+With no arguments, missing components are downloaded from their official sources.
+The three-argument form remains available for manually supplied installers.
 USAGE
   exit 2
 }
+
+if [[ $# -eq 0 ]]; then
+  exec "$script_dir/ensure-windows-components.sh"
+fi
 
 [[ $# -eq 3 ]] || usage
 [[ -f "$1" ]] || die "Item Assistant installer not found: $1"
@@ -35,28 +40,50 @@ installer_dir="$compat_data/gdia-installers"
 
 [[ -d "$prefix" ]] || die "Grim Dawn's Proton prefix does not exist at $prefix. Launch the game once with Proton 10, then close it."
 
+ia_missing=0
+dotnet_missing=0
+webview_missing=0
+vcrun_missing=0
+has_item_assistant "$prefix" || ia_missing=1
+has_dotnet_desktop_runtime "$prefix" || dotnet_missing=1
+has_webview2_runtime "$prefix" || webview_missing=1
+has_vcrun2013 "$prefix" || vcrun_missing=1
+
+if [[ $((ia_missing + dotnet_missing + webview_missing + vcrun_missing)) -eq 0 ]]; then
+  note "All Windows components are already installed; nothing will be copied or reinstalled."
+  exit 0
+fi
+
 mkdir -p "$installer_dir"
-install -m 0644 "$ia_installer" "$installer_dir/item-assistant-installer.exe"
-install -m 0644 "$dotnet_installer" "$installer_dir/dotnet-desktop-runtime.exe"
-install -m 0644 "$webview_installer" "$installer_dir/webview2-runtime.exe"
+[[ "$ia_missing" -eq 0 ]] || install -m 0644 "$ia_installer" "$installer_dir/item-assistant-installer.exe"
+[[ "$dotnet_missing" -eq 0 ]] || install -m 0644 "$dotnet_installer" "$installer_dir/dotnet-desktop-runtime.exe"
+[[ "$webview_missing" -eq 0 ]] || install -m 0644 "$webview_installer" "$installer_dir/webview2-runtime.exe"
 
-note "Installing Visual C++ 2013 into Grim Dawn's prefix..."
-flatpak run com.github.Matoking.protontricks 219990 -q vcrun2013
+if [[ "$vcrun_missing" -eq 1 ]]; then
+  note "Installing Visual C++ 2013 into Grim Dawn's prefix..."
+  flatpak run com.github.Matoking.protontricks 219990 -q vcrun2013
+fi
 
-note "Installing the .NET Desktop Runtime..."
-flatpak run com.github.Matoking.protontricks \
-  -c "wine '$installer_dir/dotnet-desktop-runtime.exe' /install /quiet /norestart" \
-  219990
+if [[ "$dotnet_missing" -eq 1 ]]; then
+  note "Installing the .NET Desktop Runtime..."
+  flatpak run com.github.Matoking.protontricks \
+    -c "wine '$installer_dir/dotnet-desktop-runtime.exe' /install /quiet /norestart" \
+    219990
+fi
 
-note "Installing Microsoft Edge WebView2 Runtime..."
-flatpak run com.github.Matoking.protontricks \
-  -c "wine '$installer_dir/webview2-runtime.exe' /silent /install" \
-  219990
+if [[ "$webview_missing" -eq 1 ]]; then
+  note "Installing Microsoft Edge WebView2 Runtime..."
+  flatpak run com.github.Matoking.protontricks \
+    -c "wine '$installer_dir/webview2-runtime.exe' /silent /install" \
+    219990
+fi
 
-note "Installing Grim Dawn Item Assistant..."
-flatpak run com.github.Matoking.protontricks \
-  -c "wine '$installer_dir/item-assistant-installer.exe' /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" \
-  219990
+if [[ "$ia_missing" -eq 1 ]]; then
+  note "Installing Grim Dawn Item Assistant..."
+  flatpak run com.github.Matoking.protontricks \
+    -c "wine '$installer_dir/item-assistant-installer.exe' /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" \
+    219990
+fi
 
 ia_dir="$prefix/drive_c/Program Files/IAGD"
 webview_root="$prefix/drive_c/Program Files (x86)/Microsoft/EdgeWebView/Application"

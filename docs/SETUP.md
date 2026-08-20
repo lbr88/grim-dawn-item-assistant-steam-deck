@@ -43,40 +43,33 @@ GRIM_DAWN_DIR='/path/to/SteamLibrary/steamapps/common/Grim Dawn' \
 ./scripts/link-steam-detection.sh
 ```
 
-## 2. Install Protontricks
+## 2. Install the Windows components automatically
 
-Install **Protontricks** from Discover in Desktop Mode. Its upstream project recommends the Flatpak package for Steam Deck.
-
-The Flatpak is used only for installing Windows components and opening Item Assistant by itself during configuration. Do not use it as the everyday runtime launcher: a Flatpak-launched Item Assistant cannot inject into a game in Steam's separate runtime container.
-
-## 3. Download official installers
-
-Download these from their official sites:
-
-- [Grim Dawn Item Assistant](https://grimdawn.evilsoft.net/)
-- [.NET Desktop Runtime for Windows x64](https://dotnet.microsoft.com/download/dotnet/)
-- [Microsoft Edge WebView2 Runtime for Windows x64](https://developer.microsoft.com/microsoft-edge/webview2/)
-
-The tested installation used Item Assistant `1.5.9700.13021`, .NET Desktop Runtime `10.0.11`, and WebView2 `151.0.4129.93`. New Item Assistant releases may change their runtime requirements; check upstream release notes.
-
-This repository intentionally does not download or redistribute those binaries.
-
-## 4. Install the Windows components into prefix 219990
-
-From this repository directory, pass the three downloaded installers to:
+From this repository directory, run:
 
 ```bash
-./scripts/install-windows-components.sh \
-  ~/Downloads/GDItemAssistant.exe \
-  ~/Downloads/windowsdesktop-runtime-10-x64.exe \
-  ~/Downloads/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+./scripts/ensure-windows-components.sh
 ```
 
-The script copies them into Grim Dawn's compatdata directory, then installs Visual C++ 2013, the selected .NET Desktop Runtime, WebView2, and Item Assistant with Protontricks.
+The script inspects prefix `219990` before doing anything. It checks Item Assistant, .NET Desktop Runtime, WebView2, and Visual C++ 2013 independently. Installed components are skipped; only missing components are downloaded and installed. If Protontricks is needed and absent, its Flatpak is installed automatically from Flathub.
 
-If an installer has a different filename, use its actual path. Paths containing spaces are supported.
+The automatic installer uses these official downloads:
 
-## 5. Make Linux Steam detectable inside the prefix
+- Tested [Grim Dawn Item Assistant release](https://github.com/marius00/iagd/releases/tag/1.5.9700.13021)
+- Microsoft .NET Desktop Runtime 10.0.11 for Windows x64
+- Microsoft's x64 WebView2 Evergreen standalone installer
+
+The Item Assistant and .NET downloads are checked against their published cryptographic hashes. WebView2 is fetched through Microsoft's official Evergreen redirect and validated as a Windows executable before it is run. The repository does not redistribute these binaries.
+
+To inspect without changing anything:
+
+```bash
+./scripts/ensure-windows-components.sh --check
+```
+
+For advanced use, `scripts/install-windows-components.sh` still accepts three manually downloaded installer paths. It also skips components already present.
+
+## 3. Make Linux Steam detectable inside the prefix
 
 Item Assistant expects Windows Steam at `C:\Program Files (x86)\Steam`. Its Wine file selector was unusable on the tested Deck, so the helper creates two narrowly scoped symlinks: the real Linux Steam `config.vdf` and the real Grim Dawn game directory.
 
@@ -95,9 +88,9 @@ GRIM_DAWN_DIR='/run/media/deck/CARD/steamapps/common/Grim Dawn' \
 
 The script refuses to replace a real file or directory at either destination.
 
-## 6. Parse and configure Item Assistant before the game
+## 4. Parse and configure Item Assistant before the game
 
-Keep Grim Dawn closed and run:
+The guided installer skips this section when it detects an already-populated Item Assistant database. On a new installation, keep Grim Dawn closed and run:
 
 ```bash
 ./scripts/run-ia-setup.sh
@@ -120,7 +113,7 @@ In Item Assistant:
 
 Item Assistant online sync is not Steam Cloud. Treat its token as a password.
 
-## 7. Install the combined Steam runtime
+## 5. Install the combined Steam runtime
 
 Run:
 
@@ -134,6 +127,7 @@ The installer:
 - Links to the existing official Proton 10 runtime instead of copying or modifying it.
 - Moves an older copy to a timestamped backup rather than deleting it.
 - Does not edit Steam's `config.vdf`.
+- Does nothing when the installed launcher and Proton links are already current.
 
 Then:
 
@@ -142,7 +136,7 @@ Then:
 3. Force **GD Item Assistant - Proton 10**.
 4. Confirm Grim Dawn's **Launch Options** remain empty.
 
-## 8. Test in Desktop Mode
+## 6. Test in Desktop Mode
 
 1. Launch only the official **Grim Dawn** Steam entry.
 2. Item Assistant should appear first.
@@ -155,7 +149,7 @@ Then:
 
 If that passes, repeat the same test in Gaming Mode. You still launch only the official Grim Dawn entry.
 
-## 9. Normal operation
+## 7. Normal operation
 
 - Last shared-stash tab: import items into Item Assistant.
 - Second-to-last shared-stash tab: receive items transferred back to the game.

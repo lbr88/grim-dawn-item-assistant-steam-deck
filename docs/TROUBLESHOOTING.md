@@ -76,9 +76,13 @@ Item Assistant was started with the wrong working directory. Use `scripts/run-ia
 
 ## WebView2 runtime not found
 
-Run `scripts/diagnose.sh`. If the WebView2 check fails, reinstall the x64 Evergreen WebView2 Runtime into prefix `219990` with `scripts/install-windows-components.sh`.
+Run `scripts/diagnose.sh`. If the WebView2 check fails, run `scripts/ensure-windows-components.sh`. It checks every component and downloads only the missing x64 Evergreen WebView2 Runtime into prefix `219990`.
 
 The launch scripts select the installed WebView2 version dynamically. Do not paste the tested version number into a local launcher.
+
+## The installer asks for Windows installer files
+
+That was behavior in the original installer and is no longer expected. The current installer downloads missing components automatically and never presents file pickers. Rerun the downloaded desktop launcher so it fetches the current repository scripts.
 
 ## Steam remains on Running after the game exits
 

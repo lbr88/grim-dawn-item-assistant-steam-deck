@@ -20,19 +20,6 @@ cancelled() {
   exit 0
 }
 
-choose_installer() {
-  local prompt="$1"
-  local selected
-
-  selected="$(kdialog --title "$title" --getopenfilename "$HOME/Downloads" '*.exe|Windows installers (*.exe)' 2>/dev/null)" || return 1
-  [[ -n "$selected" ]] || return 1
-  [[ -f "$selected" ]] || {
-    dialog_error "$prompt was not found."
-    return 1
-  }
-  printf '%s\n' "$selected"
-}
-
 show_diagnostics() {
   local report
   report="$(mktemp /tmp/gdia-diagnostics.XXXXXX)"
@@ -86,39 +73,26 @@ fi
 assert_grim_dawn_closed
 
 if [[ "$choice" == "full" ]]; then
-  if ! flatpak info com.github.Matoking.protontricks >/dev/null 2>&1; then
-    if kdialog --title "$title" --yesno "Protontricks is required for the one-time Windows component installation. Install it from Flathub now?" 2>/dev/null; then
-      flatpak install --user -y flathub com.github.Matoking.protontricks
-    else
-      cancelled
-    fi
+  database_was_ready=0
+  if has_parsed_item_database "$prefix"; then
+    database_was_ready=1
   fi
 
-  if ! kdialog --title "$title" --yesno "Before continuing, download these three official Windows x64 installers:\n\n- Grim Dawn Item Assistant\n- .NET Desktop Runtime required by Item Assistant\n- Microsoft Edge WebView2 Evergreen Runtime\n\nHave you downloaded all three?" 2>/dev/null; then
-    xdg-open 'https://grimdawn.evilsoft.net/' >/dev/null 2>&1 || true
-    xdg-open 'https://dotnet.microsoft.com/download/dotnet/' >/dev/null 2>&1 || true
-    xdg-open 'https://developer.microsoft.com/microsoft-edge/webview2/' >/dev/null 2>&1 || true
-    dialog_info "The official download pages were opened in your browser. Download the three Windows x64 installers, then run this desktop installer again."
-    exit 0
-  fi
-
-  dialog_info "Select the Grim Dawn Item Assistant installer."
-  ia_installer="$(choose_installer 'The Item Assistant installer')" || cancelled
-  dialog_info "Select the Windows x64 .NET Desktop Runtime installer."
-  dotnet_installer="$(choose_installer 'The .NET Desktop Runtime installer')" || cancelled
-  dialog_info "Select the Windows x64 Microsoft Edge WebView2 Runtime installer."
-  webview_installer="$(choose_installer 'The WebView2 installer')" || cancelled
-
-  dialog_info "The Windows components will now be installed into Grim Dawn's Proton prefix. This can take several minutes. Follow any installer windows that appear."
-  "$script_dir/install-windows-components.sh" "$ia_installer" "$dotnet_installer" "$webview_installer"
+  dialog_info "The installer will now check the existing Grim Dawn prefix. Already-installed components are skipped. Only missing components are downloaded and installed automatically."
+  "$script_dir/ensure-windows-components.sh"
   "$script_dir/link-steam-detection.sh"
 
-  dialog_info "Item Assistant will open by itself for one-time configuration. Keep Grim Dawn closed. Let the Grim Dawn database finish parsing, sign into Item Assistant online sync if wanted, wait for all items to download, and then close Item Assistant to continue."
-  "$script_dir/run-ia-setup.sh"
-
-  if ! kdialog --title "$title" --yesno "Did Item Assistant detect Grim Dawn, finish parsing its database, and complete any online synchronization?" 2>/dev/null; then
-    dialog_info "The combined Steam launcher was not installed yet. Rerun this installer after Item Assistant configuration succeeds."
-    exit 0
+  if [[ "$database_was_ready" -eq 1 ]] || has_parsed_item_database "$prefix"; then
+    database_count="$(item_database_count "$prefix")"
+    note "Item Assistant database is already configured ($database_count records); skipping setup."
+  else
+    if ! flatpak info com.github.Matoking.protontricks >/dev/null 2>&1; then
+      note "Installing Protontricks from Flathub for first-time Item Assistant configuration..."
+      flatpak install --user -y flathub com.github.Matoking.protontricks
+    fi
+    dialog_info "Item Assistant needs one unavoidable first-time configuration. It will open now. Keep Grim Dawn closed, let the game database finish parsing, sign into Item Assistant online sync if wanted, wait for synchronization to finish, and then close Item Assistant."
+    "$script_dir/run-ia-setup.sh"
+    has_parsed_item_database "$prefix" || die "Item Assistant closed before its Grim Dawn database finished parsing. Open it again and allow setup to complete."
   fi
 fi
 

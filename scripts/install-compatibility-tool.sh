@@ -33,6 +33,25 @@ case "$target" in
   *) die "Refusing unexpected compatibility-tool target: $target" ;;
 esac
 
+tool_is_current() {
+  local runtime_file
+
+  [[ -d "$target" ]] || return 1
+  cmp -s "$repo_root/compatibility-tool/proton" "$target/proton" || return 1
+  cmp -s "$repo_root/compatibility-tool/compatibilitytool.vdf" "$target/compatibilitytool.vdf" || return 1
+  cmp -s "$repo_root/compatibility-tool/toolmanifest.vdf" "$target/toolmanifest.vdf" || return 1
+  [[ -L "$target/upstream-proton" && "$(readlink -- "$target/upstream-proton")" == "$proton_dir/proton" ]] || return 1
+
+  for runtime_file in "${required_runtime_files[@]}"; do
+    [[ -L "$target/$runtime_file" && "$(readlink -- "$target/$runtime_file")" == "$proton_dir/$runtime_file" ]] || return 1
+  done
+}
+
+if tool_is_current; then
+  note "$tool_name is already up to date; no files were changed."
+  exit 0
+fi
+
 mkdir -p "$steam_root/compatibilitytools.d" "$backup_root"
 
 if [[ -e "$target" || -L "$target" ]]; then
